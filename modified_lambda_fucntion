@@ -1,0 +1,323 @@
+import json
+import boto3
+import csv
+import os
+from datetime import datetime
+from io import StringIO, BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+import uuid
+import base64
+
+# Initialize AWS clients
+s3_client = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+
+# Environment variables
+BUCKET_NAME = os.environ.get('BUCKET_NAME', 'pledge-certificate-generation-project')
+CSV_KEY = os.environ.get('CSV_KEY', 'employees.csv')
+DYNAMODB_TABLE = os.environ.get('DYNAMODB_TABLE', 'IntegrityPledges')
+
+# In-memory cache
+employee_cache = {'data': None, 'timestamp': None}
+CACHE_TTL = 300  # 5 minutes
+
+def load_employees_from_s3():
+    """Load employee data from S3 CSV with caching"""
+    global employee_cache
+    
+    current_time = datetime.now().timestamp()
+    
+    # Check cache
+    if employee_cache['data'] and employee_cache['timestamp']:
+        if current_time - employee_cache['timestamp'] < CACHE_TTL:
+            print(f"✓ Using cached employee data ({len(employee_cache['data'])} employees)")
+            return employee_cache['data']
+    
+    print(f"Loading employees from S3: s3://{BUCKET_NAME}/{CSV_KEY}")
+    
+    try:
+        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=CSV_KEY)
+        csv_content = response['Body'].read().decode('utf-8')
+        
+        csv_reader = csv.DictReader(StringIO(csv_content))
+        employees = {row['employee_id']: row for row in csv_reader}
+        
+        # Update cache
+        employee_cache['data'] = employees
+        employee_cache['timestamp'] = current_time
+        
+        print(f"✓ Loaded {len(employees)} employees from S3")
+        return employees
+        
+    except Exception as e:
+        print(f"✗ Error loading employees: {str(e)}")
+        raise
+
+from reportlab.lib.pagesizes import landscape
+
+def generate_certificate(employee_name, employee_id, department, designation, date_str):
+    """Generate PDF certificate in landscape with improved aesthetics and colors"""
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+
+    print(f"Generating certificate for: {employee_name}")
+
+    # Use landscape orientation
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
+
+    # Draw decorative border (triple border)
+    # Outer border (blue)
+    c.setStrokeColor(colors.HexColor('#4169E1'))  # Royal blue
+    c.setLineWidth(4)
+    c.rect(40, 40, width - 80, height - 80)
+
+    # Middle border (purple)
+    c.setStrokeColor(colors.HexColor('#8B5CF6'))  # Purple
+    c.setLineWidth(3)
+    c.rect(50, 50, width - 100, height - 100)
+
+    # Inner border (lighter purple)
+    c.setStrokeColor(colors.HexColor('#A78BFA'))  # Light purple
+    c.setLineWidth(2)
+    c.rect(60, 60, width - 120, height - 120)
+
+    # Title - CERTIFICATE OF INTEGRITY
+    c.setFillColor(colors.HexColor('#1E40AF'))  # Dark blue
+    c.setFont("Helvetica-Bold", 36)
+    c.drawCentredString(width / 2, height - 120, "CERTIFICATE OF INTEGRITY")
+
+    # Subtitle - Fraud Awareness Week (RED)
+    c.setFillColor(colors.HexColor('#DC2626'))  # Red
+    c.setFont("Helvetica-Bold", 24)
+    c.drawCentredString(width / 2, height - 160, "Fraud Awareness Week")
+
+    # Horizontal line under title
+    c.setStrokeColor(colors.HexColor('#8B5CF6'))  # Purple
+    c.setLineWidth(2)
+    c.line(150, height - 175, width - 150, height - 175)
+
+    # "This certifies that"
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 14)
+    c.drawCentredString(width / 2, height - 220, "This certifies that")
+
+    # Employee Name (BOLD and LARGE)
+    c.setFillColor(colors.HexColor('#1E40AF'))  # Dark blue
+    c.setFont("Helvetica-Bold", 28)
+    c.drawCentredString(width / 2, height - 260, employee_name.upper())
+
+    # Employee details
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 12)
+    c.drawCentredString(width / 2, height - 290, f"Employee ID: {employee_id} | Department: {department}")
+
+    # Main text
+    c.setFont("Helvetica", 13)
+    c.drawCentredString(width / 2, height - 330, "has taken the Integrity Pledge and commits to:")
+
+    # Pledge bullet points (left-aligned)
+    left_margin = 120
+    y_pos = height - 370
+
+    pledges = [
+        "• Protecting the company's integrity and reputation",
+        "• Staying alert and questioning what feels wrong",
+        "• Always choosing ethics over convenience",
+        "• Ensuring every customer can trust our promise",
+        "• Contributing to a culture of honesty and accountability"
+    ]
+
+    c.setFont("Helvetica", 12)
+    for pledge in pledges:
+        c.drawString(left_margin, y_pos, pledge)
+        y_pos -= 25
+
+    # Date (left side)
+    c.setFont("Helvetica", 11)
+    c.drawString(100, 140, f"Date: {date_str}")
+
+    # Signature line (right side)
+    c.line(width - 280, 140, width - 100, 140)
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawString(width - 250, 125, "Authorized Signature")
+
+    # Footer text
+    c.setFillColor(colors.grey)
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawCentredString(width / 2, 110, "Building Trust Through Integrity")
+
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(width / 2, 95, "2025 Your Insurance Company. All Rights Reserved")
+
+    # Certificate ID (bottom left)
+    cert_id = f"FAW-{datetime.now().strftime('%Y%m%d')}-{employee_id}"
+    c.setFont("Helvetica", 7)
+    c.setFillColor(colors.lightgrey)
+    c.drawString(70, 70, f"Certificate ID: {cert_id}")
+
+    c.save()
+
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    print(f"✓ Certificate generated ({len(pdf_bytes)} bytes)")
+    return pdf_bytes
+
+def save_pledge_to_dynamodb(employee_id, employee_name, department, designation, pledge_id):
+    """Save pledge information to DynamoDB"""
+    try:
+        table = dynamodb.Table(DYNAMODB_TABLE)
+        
+        item = {
+            'pledge_id': pledge_id,
+            'employee_id': employee_id,
+            'employee_name': employee_name,
+            'department': department,
+            'designation': designation,
+            'pledge_timestamp': datetime.now().isoformat(),
+            'pledge_date': datetime.now().strftime('%Y-%m-%d'),
+            'status': 'completed'
+        }
+        
+        table.put_item(Item=item)
+        print(f"✓ Pledge saved to DynamoDB for {employee_id}")
+    except Exception as e:
+        print(f"⚠ DynamoDB save failed (non-critical): {str(e)}")
+
+def lambda_handler(event, context):
+    """Main Lambda handler"""
+    print(f"Received event: {json.dumps(event)}")
+    
+    try:
+        # Parse request body
+        if isinstance(event.get('body'), str):
+            body = json.loads(event['body'])
+        else:
+            body = event.get('body', {})
+        
+        employee_id = body.get('employee_id')
+        pledge_accepted = body.get('pledge_accepted', False)
+        
+        # Validation
+        if not employee_id:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'success': False,
+                    'message': 'Employee ID is required'
+                })
+            }
+        
+        if not pledge_accepted:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'success': False,
+                    'message': 'Pledge must be accepted'
+                })
+            }
+        
+        # Load employee data
+        print(f"Looking up employee: {employee_id}")
+        employees = load_employees_from_s3()
+        
+        if employee_id not in employees:
+            return {
+                'statusCode': 404,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'success': False,
+                    'message': f'Employee {employee_id} not found'
+                })
+            }
+        
+        employee = employees[employee_id]
+        employee_name = employee['employee_name']  # Updated column name
+        department = employee.get('department', 'N/A')
+        designation = employee.get('designation', 'N/A')
+        email = employee.get('email', '')
+        
+        # Generate certificate
+        date_str = datetime.now().strftime('%B %d, %Y')
+        pdf_bytes = generate_certificate(employee_name, employee_id, department, designation, date_str)
+        
+        # Convert to base64
+        pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+        
+        # Generate pledge ID
+        pledge_id = str(uuid.uuid4())
+        
+        # Save to DynamoDB
+        save_pledge_to_dynamodb(employee_id, employee_name, department, designation, pledge_id)
+        
+        # Also upload to S3 for record keeping
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        s3_key = f"certificates/{employee_id}_{timestamp}.pdf"
+        
+        try:
+            s3_client.put_object(
+                Bucket=BUCKET_NAME,
+                Key=s3_key,
+                Body=pdf_bytes,
+                ContentType='application/pdf'
+            )
+            print(f"✓ Certificate uploaded to S3: {s3_key}")
+        except Exception as e:
+            print(f"⚠ S3 upload failed (non-critical): {str(e)}")
+        
+        print(f"✓ Pledge processed successfully for {employee_id}")
+        
+        # Return success with PDF as base64
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'POST,OPTIONS'
+            },
+            'body': json.dumps({
+                'success': True,
+                'message': 'Pledge submitted successfully',
+                'employee_name': employee_name,
+                'employee_id': employee_id,
+                'department': department,
+                'designation': designation,
+                'email': email,
+                'pledge_id': pledge_id,
+                'pdf_base64': pdf_base64,
+                'certificate_size_kb': round(len(pdf_bytes) / 1024, 2)
+            })
+        }
+        
+    except Exception as e:
+        print(f"✗ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'success': False,
+                'message': f'Internal server error: {str(e)}'
+            })
+        }

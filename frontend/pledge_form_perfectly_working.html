@@ -1,0 +1,359 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Awareness Week - Integrity Pledge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header h2 {
+            color: #d32f2f;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .pledge-content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .pledge-content h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .pledge-content p {
+            color: #555;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            text-align: justify;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #ffc107;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 25px;
+            height: 25px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            color: #333;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .company-footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #777;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Fraud Awareness Week</h1>
+            <h2>Integrity Pledge</h2>
+        </div>
+
+        <div class="pledge-content">
+            <h3>📜 Our Commitment</h3>
+            <p>
+                Fraud Awareness Week is a reminder that we all share the responsibility of protecting 
+                our company's integrity. We stand together to ensure that every customer can trust 
+                the promise we make.
+            </p>
+            <p style="margin-top: 15px;">
+                But I also see this as a personal commitment - to stay alert, to question what feels 
+                wrong, and to always choose ethics over convenience. As part of this, sharing a pledge 
+                for everyone to take - a simple yet powerful step toward igniting a culture of honesty 
+                and accountability.
+            </p>
+        </div>
+
+        <div id="message" class="message"></div>
+        <div id="loader" class="loader"></div>
+
+        <form id="pledgeForm">
+            <div class="form-group">
+                <label for="employeeId">🆔 Employee ID *</label>
+                <input 
+                    type="text" 
+                    id="employeeId" 
+                    name="employeeId" 
+                    placeholder="Enter your Employee ID"
+                    required
+                >
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input 
+                    type="checkbox" 
+                    id="acceptPledge" 
+                    name="acceptPledge"
+                    required
+                >
+                <label for="acceptPledge">
+                    ✅ I accept and commit to uphold this integrity pledge
+                </label>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                📥 Submit Pledge & Download Certificate
+            </button>
+        </form>
+
+        <div class="company-footer">
+            <p>&copy; 2025 Your Insurance Company. All rights reserved.</p>
+            <p>Building Trust Through Integrity</p>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'https://rdwcdf5fvluoqtuopqroae6sni0ohjul.lambda-url.ap-south-1.on.aws/';
+
+        document.getElementById('pledgeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const employeeId = document.getElementById('employeeId').value.trim();
+            const acceptPledge = document.getElementById('acceptPledge').checked;
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const message = document.getElementById('message');
+
+            if (!employeeId) {
+                showMessage('Please enter your Employee ID', 'error');
+                return;
+            }
+
+            if (!acceptPledge) {
+                showMessage('Please accept the integrity pledge', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            loader.style.display = 'block';
+            message.style.display = 'none';
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        employee_id: employeeId,
+                        pledge_accepted: true,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showMessage(`Pledge submitted successfully for ${data.employee_name}! Downloading certificate...`, 'success');
+
+                    // Download PDF from base64
+                    if (data.pdf_base64) {
+                        downloadPDFFromBase64(data.pdf_base64, `Integrity_Certificate_${employeeId}.pdf`);
+                    }
+
+                    setTimeout(() => {
+                        document.getElementById('pledgeForm').reset();
+                    }, 3000);
+                } else {
+                    showMessage(data.message || 'Error submitting pledge. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Network error. Please check your connection and try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type}`;
+            message.style.display = 'block';
+        }
+
+        function downloadPDFFromBase64(base64, filename) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: 'application/pdf'});
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
