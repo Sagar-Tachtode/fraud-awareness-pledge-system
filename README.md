@@ -268,18 +268,6 @@ For technical support or questions:
 - ReportLab team for the excellent PDF generation library
 - AWS for serverless infrastructure
 
-
 ---
 
 **Built with ❤️ for Fraud Awareness Week 2025**
-
-
-Replace [Your Name] with your actual name
-
-
-Update Lambda Function URL in the deployment section
-
-Save the file
-
-This README provides complete documentation for your project including architecture, deployment instructions, troubleshooting, and future enhancements. It's ready to be pushed to GitHub or shared with your team!
-
