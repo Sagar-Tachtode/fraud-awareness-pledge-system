@@ -92,11 +92,10 @@ text
 ## 🗂️ Data Schema
 
 ### Employee CSV (S3)
-employee_id,employee_name,department,email,designation
-EMP001,Rajesh Kumar,Risk Management,rajesh.kumar@company.com,Senior Manager
-EMP002,Priya Sharma,Compliance,priya.sharma@company.com,AVP
+employee_id,        employee_name,          department,                   email,                designation
+EMP001,             Rajesh Kumar,           Risk Management,    rajesh.kumar@company.com,      Senior Manager
+EMP002,             Priya Sharma,           Compliance,         priya.sharma@company.com,           AVP
 
-text
 
 ### DynamoDB Table (IntegrityPledges)
 {
@@ -256,7 +255,7 @@ text
 
 ## 📄 License
 
-Internal use onl
+Internal use only!!!
 
 ## 📞 Support
 
