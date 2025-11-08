@@ -36,3 +36,6 @@ employees.csv
 
 # Logs
 *.log
+Pledge_Certificate_Generation_accessKeys.csv
+*_accessKeys.csv
+*.csv
