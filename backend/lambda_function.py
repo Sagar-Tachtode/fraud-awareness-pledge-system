@@ -17,7 +17,8 @@ dynamodb = boto3.resource('dynamodb')
 # Environment variables
 BUCKET_NAME = os.environ.get('BUCKET_NAME', 'pledge-certificate-generation-project')
 CSV_KEY = os.environ.get('CSV_KEY', 'employees.csv')
-DYNAMODB_TABLE = os.environ.get('DYNAMODB_TABLE', 'IntegrityPledges')
+employee_table = dynamodb.Table('Employees_List')
+print("✓ DynamoDB table initialized: Employees_List")
 
 # In-memory cache
 employee_cache = {'data': None, 'timestamp': None}
@@ -48,133 +49,86 @@ def load_employees_from_s3():
         print(f"✗ Error loading employees: {str(e)}")
         raise
 
-def generate_certificate_pdf(employee_name, employee_id, department, designation, pledge_date=None):
-    """Generate professional horizontal PDF certificate"""
-    buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
-    width, height = landscape(A4)
+#####################################################################################################################
+import boto3
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 
-    # Soft background
-    pdf.setFillColorRGB(0.95, 0.95, 1.0)
-    pdf.rect(0, 0, width, height, fill=True, stroke=False)
+s3_client = boto3.client('s3')
 
-    # Borders
-    pdf.setStrokeColorRGB(0.4, 0.5, 0.9)
-    pdf.setLineWidth(8)
-    pdf.rect(30, 30, width-60, height-60, fill=False, stroke=True)
-    pdf.setStrokeColorRGB(0.5, 0.6, 1.0)
-    pdf.setLineWidth(3)
-    pdf.rect(40, 40, width-80, height-80, fill=False, stroke=True)
-
-    # Corner decorations
-    corner_size = 50
-    pdf.setStrokeColorRGB(0.6, 0.4, 0.8)
-    pdf.setLineWidth(5)
-    for x_pos, y_pos in [(50, height-50), (width-50, height-50), (50, 50), (width-50, 50)]:
-        pdf.line(x_pos, y_pos, min(x_pos + corner_size, width-10), y_pos)
-        if y_pos < height / 2:
-            pdf.line(x_pos, y_pos, x_pos, y_pos + corner_size)
-        else:
-            pdf.line(x_pos, y_pos, x_pos, y_pos - corner_size)
-
-    # Title
-    pdf.setFillColorRGB(0.2, 0.2, 0.5)
-    pdf.setFont("Helvetica-Bold", 36)
-    pdf.drawCentredString(width/2, height-100, "CERTIFICATE OF INTEGRITY")
-
-    # Subtitle
-    pdf.setFillColorRGB(0.8, 0.2, 0.2)
-    pdf.setFont("Helvetica-Bold", 24)
-    pdf.drawCentredString(width/2, height-140, "Fraud Awareness Week")
-
-    # Decorative line
-    pdf.setStrokeColorRGB(0.6, 0.4, 0.8)
-    pdf.setLineWidth(2)
-    pdf.line(width/2-200, height-155, width/2+200, height-155)
-
-    # Body text
-    pdf.setFillColorRGB(0.2, 0.2, 0.2)
-    pdf.setFont("Helvetica", 14)
-    pdf.drawCentredString(width/2, height-200, "This certifies that")
-
-    # Employee name
-    pdf.setFillColorRGB(0.1, 0.1, 0.5)
-    pdf.setFont("Helvetica-Bold", 28)
-    pdf.drawCentredString(width/2, height-240, employee_name.upper())
-
-    # Employee details
-    pdf.setFillColorRGB(0.3, 0.3, 0.3)
-    pdf.setFont("Helvetica", 12)
-    pdf.drawCentredString(width/2, height-270, f"Employee ID: {employee_id} | Department: {department} | Designation: {designation}")
-
-    # Pledge content
-    pdf.setFillColorRGB(0.2, 0.2, 0.2)
-    pdf.setFont("Helvetica", 13)
-    y_position = height - 320
-
-    pledge_lines = [
-        "has taken the Integrity Pledge and commits to:",
-        "",
-        "• Protecting the company's integrity and reputation",
-        "• Staying alert and questioning what feels wrong",
-        "• Always choosing ethics over convenience",
-        "• Ensuring every customer can trust our promise",
-        "• Contributing to a culture of honesty and accountability"
-    ]
-
-    for line in pledge_lines:
-        if line.startswith("•"):
-            pdf.setFont("Helvetica-Bold", 12)
-        else:
-            pdf.setFont("Helvetica", 13)
-        pdf.drawCentredString(width/2, y_position, line)
-        y_position -= 25
-
-    # Date and signature  (bottom left)
-    pdf.setFont("Helvetica", 11)
-    pdf.setFillColorRGB(0.3, 0.3, 0.3)
-    date_str = datetime.now().strftime("%B %d, %Y")
-    pdf.drawString(100, 80, f"Date of Pledge: {date_str}")
-
-    # Signature line
-    pdf.setLineWidth(1)
-    pdf.setStrokeColorRGB(0.5, 0.5, 0.5)
-    pdf.line(width-300, 80, width-100, 80)
-    pdf.setFont("Helvetica", 10)
-    pdf.drawCentredString(width-200, 105, "Authorized Signature")
-
-    # Footer
-    pdf.setFont("Helvetica-Oblique", 10)
-    pdf.setFillColorRGB(0.5, 0.5, 0.5)
-    pdf.drawCentredString(width/2, 65, "Building Trust Through Integrity")
-    pdf.drawCentredString(width/2, 50, "© 2025 Edelweiss Life Insurance. All Rights Reserved.")
-
-    # Certificate ID
-    cert_id = f"FAW-{datetime.now().strftime('%Y%m%d')}-{employee_id}"
-    pdf.setFont("Courier", 8)
-    pdf.drawString(50, 20, f"Certificate ID: {cert_id}")
-
-    pdf.save()
-    buffer.seek(0)
-    return buffer.getvalue()
-
-def save_pledge_to_dynamodb(employee_id, employee_name, department, designation, pledge_id):
-    """Save pledge to DynamoDB"""
+def generate_certificate_pdf(employee_name):
+    """Generate certificate with dynamic employee name"""
+    
     try:
-        table = dynamodb.Table(DYNAMODB_TABLE)
-        item = {
-            'pledge_id': pledge_id,
-            'employee_id': employee_id,
-            'employee_name': employee_name,
-            'department': department,
-            'designation': designation,
-            'pledge_timestamp': datetime.now().isoformat(),
-            'status': 'completed'
-        }
-        table.put_item(Item=item)
-        print(f"✓ Pledge saved to DynamoDB for {employee_id}")
+        # Download template from S3
+        response = s3_client.get_object(
+            Bucket='pledge-certificate-generation-project',
+            Key='FAW_ Certificate_ Without name & download.jpeg'
+        )
+        
+        # Open image from S3
+        template_image = Image.open(BytesIO(response['Body'].read()))
+        draw = ImageDraw.Draw(template_image)
+        
+        # Load font
+        try:
+            name_font = ImageFont.truetype("/var/task/arial.ttf", 20)
+        except:
+            try:
+                name_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+            except:
+                name_font = ImageFont.load_default()
+        
+        # Position: to the right of #BeAlertStaySecure
+        x_position = int(template_image.width * 0.52)   ### change from 0.58 to 0.52 to move left
+        y_position = int(template_image.height * 0.70)  ## changed from 0.58 to 0.70 to move down
+        
+        # Text color: dark blue
+        text_color = (30, 70, 130)
+        
+        # Draw employee name
+        draw.text(
+            (x_position, y_position),
+            employee_name.upper(),
+            fill=text_color,
+            font=name_font,
+            anchor="lm"
+        )
+        
+        # Convert to PDF
+        buffer = BytesIO()
+        template_image_rgb = template_image.convert('RGB')
+        template_image_rgb.save(buffer, format='PDF')
+        buffer.seek(0)
+        
+        return buffer.getvalue()
+        
     except Exception as e:
-        print(f"⚠ DynamoDB save failed (non-critical): {str(e)}")
+        print(f"Error generating certificate: {str(e)}")
+        raise
+
+#####################################################################################################################
+
+def save_to_dynamodb(employee_id, employee_name, certificate_key):
+    """Save employee details to DynamoDB after certificate is saved"""
+    try:
+        employee_table.put_item(
+            Item={
+                'employee_id': employee_id,
+                'employee_name': employee_name,
+                'certificate_key': certificate_key,
+                'generated_date': datetime.now().isoformat(),
+                'status': 'Certificate Generated'
+            }
+        )
+        print(f"✓ Saved to DynamoDB: {employee_id} - {employee_name}")
+        return True
+        
+    except Exception as e:
+        print(f"Error saving to DynamoDB: {str(e)}")
+        raise
+
+#####################################################################################################################
 
 def lambda_handler(event, context):
     """Main Lambda handler - CORS handled by Function URL"""
@@ -221,9 +175,9 @@ def lambda_handler(event, context):
         department = employee.get('department', 'N/A')
         designation = employee.get('designation', 'N/A')
         
-        # Generate certificate
+          # Step 1: Generate certificate PDF
         date_str = datetime.now().strftime("%B %d, %Y")
-        pdf_bytes = generate_certificate_pdf(employee_name, employee_id, department, designation, date_str)
+        pdf_bytes = generate_certificate_pdf(employee_name)
         
         # Convert to base64
         pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
@@ -231,25 +185,25 @@ def lambda_handler(event, context):
         # Generate pledge ID
         pledge_id = str(uuid.uuid4())
         
-        # Save to DynamoDB
-        save_pledge_to_dynamodb(employee_id, employee_name, department, designation, pledge_id)
-        
         # Upload to S3
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        s3_key = f"certificates/{employee_id}_{timestamp}.pdf"
+        cert_key = f"certificates/{employee_id}_{timestamp}.pdf"
         
+        # Step 2: Save certificate to S3:
         try:
-            s3_client.put_object(
-                Bucket=BUCKET_NAME,
-                Key=s3_key,
-                Body=pdf_bytes,
-                ContentType='application/pdf'
-            )
-            print(f"✓ Certificate uploaded to S3: {s3_key}")
+            s3_client.put_object(Bucket=BUCKET_NAME,
+                                 Key=cert_key,
+                                 Body=pdf_bytes,
+                                 ContentType='application/pdf'
+                                )
+            print(f"✓ Certificate uploaded to S3: {cert_key}")
         except Exception as e:
             print(f"⚠ S3 upload failed (non-critical): {str(e)}")
         
         print(f"✓ Pledge processed successfully for {employee_id}")
+
+        # Step 3: Save employee details to DynamoDB:
+        save_to_dynamodb(employee_id, employee_name, cert_key)
         
         # Return success - NO CORS headers (Function URL handles it)
         return {
